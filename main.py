@@ -1,6 +1,7 @@
 import pygame
 import asyncio
 import random
+from skimage import color as c_space
 
 pygame.init()
 
@@ -15,19 +16,56 @@ async def main():
     clock = pygame.time.Clock()
     delta: float = 0.0
     
+    banned_colors: list[str] = [
+        "aliceblue",
+        "antiquewhite",
+        "blanchedalmond",
+        "burlywood",
+        "cornflowerblue",
+        "cornsilk",
+        "darkkhaki",
+        "dimgray",
+        "dimgrey",
+        "dodgerblue",
+        "floralwhite",
+        "gainsboro",
+        "ghostwhite",
+        "ivory",
+        "khaki",
+        "lavenderblush",
+        "lawngreen",
+        "lemonchiffon",
+        "lightsteelblue",
+        "linen",
+        "limegreen",
+        "mintcream",
+        "mistyrose",
+        "moccasin",
+        "navajowhite",
+        "navyblue",
+        "oldlace",
+        "olivedrab",
+        "papayawhip",
+        "peachpuff",
+        "peru",
+        "rosybrown",
+        "seashell",
+        "snow",
+        "springgreen",
+        "wheat",
+        "whitesmoke",
+    ]
+
     all_colors = []
     
     for c in pygame.color.THECOLORS:
-        if c[-1].isdigit():
+        if c[-1].isdigit() or c in banned_colors or "medium" in c:
             continue
         all_colors.append(c)
 
     final_color = random.choice(all_colors)
-    final_tup = tuple()
 
-    s = pygame.Surface((1,1))
-    s.fill(final_color)
-    final_tup = s.get_at((0,0)).rgb
+    final_tup = c_space.rgb2lab([a / 255 for a in pygame.Color(final_color).rbg])
 
     current_guess = ""
     guesses = []
@@ -71,11 +109,7 @@ async def main():
                         current_guess = ""
                     if current_guess.lower().strip() == "!again":
                         final_color = random.choice(all_colors)
-                        final_tup = tuple()
-
-                        s = pygame.Surface((1,1))
-                        s.fill(final_color)
-                        final_tup = s.get_at((0,0)).rgb
+                        final_tup = c_space.rgb2lab([a / 255 for a in pygame.Color(final_color).rbg])
 
                         current_guess = ""
                         guesses = []
@@ -103,19 +137,19 @@ async def main():
         pygame.draw.rect(screen, 'black', (width // 2 - s.get_width() // 2 - 5, height // 4 - s.get_height() // 2 - 5, s.get_width() + 10, s.get_height() + 10), 0, 8)
         screen.blit(s, (width // 2 - s.get_width() // 2, height // 4 - s.get_height() // 2))
 
-        size = 40
+        size = 32
         x_positions = [width // 7, (width * 2) // 7, (width * 3) // 7, (width * 4) // 7,  (width * 5) // 7]
 
         has_won = False
 
         for i, guess in enumerate(guesses):
-            s = pygame.Surface((1,1))
-            s.fill(guess)
-            tup = s.get_at((0,0)).rgb
+            tup = c_space.rgb2lab([a / 255 for a in pygame.Color(guess).rbg])
+
 
             p = 0
-            for j in range(3):
-                p += abs(final_tup[j] - tup[j]) / 255
+            p += abs(final_tup[0] - tup[0]) / 100
+            p += abs(final_tup[1] - tup[1]) / 100
+            p += abs(final_tup[2] - tup[2]) / 100
             p /= 3
 
             if p == 0.0:
@@ -123,9 +157,9 @@ async def main():
             
             x, y = i % len(x_positions), i // len(x_positions)
 
-            pygame.draw.rect(screen, guess, (x_positions[x] - size // 2, height // 3 + (size + 75) * y, size, size), 0, 8)
-            pygame.draw.rect(screen, 'black', (x_positions[x] - size // 2, height // 3 + (size + 75) * y, size, size), 1, 8)
-            screen.blit(s := font.render(f"{guess}\n{((1.0 - p) * 100.0):.1f}%", True, "antiquewhite"), (x_positions[x] - s.get_width() // 2, height // 3 + (size + 75) * y + size + 5))
+            pygame.draw.rect(screen, guess, (x_positions[x] - size // 2, height // 3 + (size + 60) * y, size, size), 0, 8)
+            pygame.draw.rect(screen, 'black', (x_positions[x] - size // 2, height // 3 + (size + 60) * y, size, size), 1, 8)
+            screen.blit(s := font.render(f"{guess}\n{((1.0 - p) * 100.0):.1f}%", True, "antiquewhite"), (x_positions[x] - s.get_width() // 2, height // 3 + (size + 60) * y + size + 5))
 
         if has_won:
             screen.blit(s := font.render(f"You have won! The color was \"{final_color}\".", True, "antiquewhite"), (width // 2 - s.get_width() // 2, height - s.get_height() - 5))
